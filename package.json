@@ -8,7 +8,9 @@
     "watch": "node_modules/.bin/babel-watch",
     "lint": "node_modules/.bin/eslint .",
     "flow": "node_modules/flow-bin/cli.js",
-    "build": "node_modules/.bin/babel src/ -d lib/ --copy-files"
+    "build": "node_modules/.bin/babel src/ -d lib/ --copy-files",
+    "master": "./lib/master/index.js",
+    "worker": "./lib/worker/index.js"
   },
   "author": "Dhananjoy Biswas",
   "license": "MIT",

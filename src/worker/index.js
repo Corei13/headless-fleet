@@ -1,5 +1,7 @@
+#!/usr/bin/env node
 // @flow
 
+import Promise from 'bluebird';
 import express from 'express';
 import bodyParser from 'body-parser';
 import moment from 'moment';
@@ -70,6 +72,14 @@ app.use(({ requestTime, method, originalUrl }) => {
 
 app.listen(3001, async () => {
   logger.info('controller listening on port 3001!');
+  while (true) {
+    try {
+      await controller.register();
+      break;
+    } catch (err) {
+      logger.error(err);
+    }
+    await Promise.delay(1000);
+  }
   await controller.start();
-  await controller.register();
 });
