@@ -71,17 +71,17 @@ app.use(({ requestTime, method, originalUrl }) => {
 });
 
 
-(async () => {
-  await controller.start();
-  app.listen(3001, async () =>
-    logger.info('controller listening on port 3001!'));
-  while (true) {
-    try {
-      await controller.register();
-      break;
-    } catch (err) {
-      logger.error('Failed to register:', err);
+controller.start().then(() =>
+  app.listen(3001, async () => {
+    logger.info('controller listening on port 3001!');
+    while (true) {
+      try {
+        await controller.register();
+        break;
+      } catch (err) {
+        logger.error('Failed to register:', err);
+      }
+      await Promise.delay(1000);
     }
-    await Promise.delay(1000);
-  }
-})();
+  })
+);
