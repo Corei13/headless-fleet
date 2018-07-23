@@ -45,12 +45,15 @@ export default class Controller {
     logger.info('Chrome started!');
   }
 
-  async register() {
-    await rp({
-      uri: `http://${MASTER}:4001/register`,
+  async ping() {
+    const { register } = await rp({
+      uri: `http://${MASTER}:4001/ping`,
+      json: true,
       timeout: 1000
     });
-    logger.info('Registered successfully!')
+    if (register) {
+      logger.info('Registered successfully!');
+    }
   }
 
   async newTab() {

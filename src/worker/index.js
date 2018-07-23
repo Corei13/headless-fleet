@@ -76,10 +76,9 @@ controller.start().then(() =>
     logger.info('controller listening on port 3001!');
     while (true) {
       try {
-        await controller.register();
-        break;
+        await controller.ping();
       } catch (err) {
-        logger.error('Failed to register:', err);
+        logger.error('Failed to ping master:', err);
       }
       await Promise.delay(1000);
     }

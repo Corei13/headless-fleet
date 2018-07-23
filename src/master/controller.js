@@ -10,9 +10,13 @@ const logger = new Logger('CONTROLLER');
 export default class Controller {
   workers: Array<string> = [];
 
-  register(host: string) {
-    this.workers.push(host);
-    logger.success('Registered', host);
+  ping(host: string) {
+    if (!this.workers.includes(host)) {
+      this.workers.push(host);
+      logger.success('Registered', host);
+      return { register: true };
+    }
+    return { register: false };
   }
 
   async pingForever() {

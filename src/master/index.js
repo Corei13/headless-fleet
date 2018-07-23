@@ -19,9 +19,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/register', async (req, res, next) => {
+app.get('/ping', async (req, res, next) => {
   const { connection: { remoteAddress } } = req;
-  res.status(200).send(controller.register(remoteAddress.substr(7)));
+  res.status(200).send(controller.ping(remoteAddress.substr(7)));
   next();
 });
 
@@ -47,7 +47,9 @@ app.use((err, req, res, next) => {
 
 app.use(({ requestTime, method, originalUrl }) => {
   const elapsed = moment().diff(requestTime, 'ms') / 1000;
-  logger.info(method, originalUrl, logger.bold(elapsed.toFixed(2)));
+  if (originalUrl !== '/ping' || elapsed >= 0.01) {
+    logger.info(method, originalUrl, logger.bold(elapsed.toFixed(2)));
+  }
 });
 
 app.listen(4001, () => {
