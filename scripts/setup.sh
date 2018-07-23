@@ -23,7 +23,7 @@ command = yarn worker
 autorestart = true
 stdout_logfile = /log/worker.log
 stderr_logfile = /log/worker.err
-environment = MASTER=REPLACE_WITH_MASTER_HOST
+environment = HEADLESS=true,MASTER=REPLACE_WITH_MASTER_HOST
 EOL
 
 mkdir /log
