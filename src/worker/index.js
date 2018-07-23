@@ -72,6 +72,9 @@ app.use(({ requestTime, method, originalUrl }) => {
 
 
 (async () => {
+  await controller.start();
+  app.listen(3001, async () =>
+    logger.info('controller listening on port 3001!'));
   while (true) {
     try {
       await controller.register();
@@ -81,8 +84,4 @@ app.use(({ requestTime, method, originalUrl }) => {
     }
     await Promise.delay(1000);
   }
-  await controller.start();
-
-  app.listen(3001, async () =>
-    logger.info('controller listening on port 3001!'));
 })();
