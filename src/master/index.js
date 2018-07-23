@@ -25,13 +25,32 @@ app.get('/ping', async (req, res, next) => {
   next();
 });
 
-app.post('/job', async (req, res, next) => {
+app.post('/job/one', async (req, res, next) => {
   const {
     body: { url, expression, args = {}, timeout = 10 }
   } = req;
 
   try {
     const result = await controller.run(url, expression, args, Number(timeout) * 1000);
+    res.status(200).send(result);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/job/batch', async (req, res, next) => {
+  const { body } = req;
+
+  try {
+    const result = await Promise.all(
+      body.map(({ url, expression, args = {}, timeout = 10 }) =>
+        controller.run(url, expression, args, Number(timeout) * 1000).then(
+          result => ({ success: true, result }),
+          err => ({ success: false, error: err.message })
+        )
+      )
+    )
     res.status(200).send(result);
     next();
   } catch (err) {
