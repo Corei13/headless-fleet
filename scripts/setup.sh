@@ -8,7 +8,7 @@ apt-get update
 apt-get install -y git nodejs build-essential tcl supervisor htop
 
 cd /home/ubuntu/
-git clone https://Corei13@github.com/Backpack-Technologies/$REPO.git
+git clone https://github.com/Corei13/$REPO.git
 cd $REPO
 npm install
 npm run build
