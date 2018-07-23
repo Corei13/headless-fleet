@@ -1,0 +1,4 @@
+node_modules/*
+flow/*
+lib/
+mongo-snippets.js
