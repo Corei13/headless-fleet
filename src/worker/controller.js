@@ -46,7 +46,10 @@ export default class Controller {
   }
 
   async register() {
-    await rp(`http://${MASTER}:4001/register`);
+    await rp({
+      uri: `http://${MASTER}:4001/register`,
+      timeout: 1000
+    });
     logger.info('Registered successfully!')
   }
 

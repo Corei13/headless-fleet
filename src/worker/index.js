@@ -77,7 +77,7 @@ app.listen(3001, async () => {
       await controller.register();
       break;
     } catch (err) {
-      logger.error(err);
+      logger.error('Failed to register:', err);
     }
     await Promise.delay(1000);
   }
