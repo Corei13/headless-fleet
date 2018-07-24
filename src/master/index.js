@@ -25,6 +25,11 @@ app.get('/ping', async (req, res, next) => {
   next();
 });
 
+app.get('/workers', async (req, res, next) => {
+  res.status(200).send(controller.getWorkers());
+  next();
+});
+
 app.post('/job/one', async (req, res, next) => {
   const {
     body: { url, expression, args = {}, timeout = 10 }

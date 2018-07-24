@@ -9,6 +9,7 @@ const logger = new Logger('CONTROLLER');
 
 export default class Controller {
   workers: Array<string> = [];
+  stats: { [string]: { total: number, failed: number, active: number } } = {}
 
   ping(host: string) {
     if (!this.workers.includes(host)) {
@@ -21,23 +22,34 @@ export default class Controller {
 
   async pingForever() {
     while (true) {
+      const stats = {};
       const res = await Promise.all(this.workers.map(host =>
         rp({
           uri: `http://${host}:3001/health`,
-          timeout: 1000
+          timeout: 1000,
+          json: true
         })
-        .then(() => [host, true], err => {
+        .then(res => {
+          stats[host] = res;
+          return [host, true];
+        }, err => {
           logger.error(err);
           return [host, false];
         })
       ));
+
       this.workers = [];
+      this.stats = stats;
       res.forEach(([host, alive]) => alive
         ? this.workers.push(host)
         : logger.warn('Deregistered', host)
       )
-      await Promise.delay(200);
+      await Promise.delay(10000);
     }
+  }
+
+  getWorkers() {
+    return this.stats;
   }
 
   async run(url: string, expression: string, args: Object, timeout: number) {

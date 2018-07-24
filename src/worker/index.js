@@ -24,26 +24,9 @@ app.post('/job', async (req, res, next) => {
   const { body: { url, expression, args, timeout } } = req;
 
   try {
-    const page = await controller.newTab();
-    try {
-      const { requestedAt, loadedAt } = await controller.navigate(
-        page, url, { waitUntil: 'domcontentloaded', timeout });
-      const result = await controller.evaluate(page, expression.toString(), args);
-      const foundAt = Date.now();
-      res.status(200).send({
-        elapsed: {
-          fetch: loadedAt - requestedAt,
-          find: foundAt - loadedAt,
-          total: foundAt - requestedAt
-        },
-        result
-      });
-      next();
-    } catch (err) {
-      logger.error(err);
-      next(err);
-    }
-    await controller.closeTab(page);
+    const response = await controller.run(url, expression, args, timeout);
+    res.status(200).send(response);
+    next();
   } catch (err) {
     logger.error(err);
     next(err);
@@ -52,7 +35,10 @@ app.post('/job', async (req, res, next) => {
 
 app.get('/health', (req, res, next) => {
   try {
-    res.status(200).send({});
+    const { total, active, failed } = controller.health();
+    res.status(200).send({ total, active, failed });
+    logger.info('Total:', total, 'Active:', active, 'Failed:', failed);
+    next();
   } catch (err) {
     logger.error(err);
     next(err);
@@ -80,7 +66,7 @@ controller.start().then(() =>
       } catch (err) {
         logger.error('Failed to ping master:', err);
       }
-      await Promise.delay(1000);
+      await Promise.delay(10000);
     }
   })
 );

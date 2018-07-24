@@ -17,6 +17,7 @@ export default class Controller {
   flags: Array<string> = [];
   chrome: Browser;
   dimensions: Viewport;
+  stats: { total: number, failed: number, active: number } = { total: 0, failed: 0, active: 0 };
 
   constructor({
     headless = !!process.env.HEADLESS,
@@ -46,7 +47,8 @@ export default class Controller {
   }
 
   async ping() {
-    const { register } = await rp({
+    const { register
+     } = await rp({
       uri: `http://${MASTER}:4001/ping`,
       json: true,
       timeout: 1000
@@ -74,6 +76,40 @@ export default class Controller {
     const fn = (new Function(`return args => (${expression})({ document, window }, args);`)(): any);
     const result = await page.evaluate(fn, args);
     return result;
+  }
+
+  async run(url: string, expression: string, args: Object, timeout: number) {
+    const page = await this.newTab();
+    this.stats.total += 1;
+    this.stats.active += 1;
+    try {
+      const { requestedAt, loadedAt } = await this.navigate(
+        page, url, { waitUntil: 'domcontentloaded', timeout });
+
+      const result = await this.evaluate(page, expression.toString(), args);
+      const foundAt = Date.now();
+      await this.closeTab(page);
+      this.stats.active -= 1;
+      return {
+        success: true,
+        elapsed: {
+          fetch: loadedAt - requestedAt,
+          find: foundAt - loadedAt,
+          total: foundAt - requestedAt
+        },
+        result
+      };
+    } catch (err) {
+      logger.error(err);
+      this.stats.failed += 1;
+      this.stats.active -= 1;
+      await this.closeTab(page);
+      throw err;
+    }
+  }
+
+  health() {
+    return this.stats;
   }
 
   async closeTab(page: Page) {
