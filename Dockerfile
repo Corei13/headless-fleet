@@ -21,6 +21,7 @@ RUN addgroup -S puppeteer && adduser -S -g puppeteer puppeteer \
 USER puppeteer
 
 WORKDIR /home/puppeteer
+COPY package.json package.json
 COPY src src
 
 RUN yarn
