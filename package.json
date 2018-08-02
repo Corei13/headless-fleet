@@ -1,8 +1,8 @@
 {
-  "name": "serverless-headless",
+  "name": "headless-fleet",
   "version": "1.0.0",
   "description": "Manage and run a fleet of headless chrome.",
-  "repository": "https://github.com/Corei13/serverless-headless",
+  "repository": "https://github.com/Corei13/headless-fleet",
   "scripts": {
     "n": "node_modules/.bin/babel-node",
     "watch": "node_modules/.bin/babel-watch",
