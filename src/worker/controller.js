@@ -12,43 +12,44 @@ const logger = new Logger('CONTROLLER');
 const MASTER = process.env.MASTER || 'localhost';
 
 export default class Controller {
-  // history: TODO
   headless: boolean;
   flags: Array<string> = [];
   chrome: Browser;
   dimensions: Viewport;
+  executablePath: string;
   stats: { total: number, failed: number, active: number } = { total: 0, failed: 0, active: 0 };
 
   constructor({
     headless = !!process.env.HEADLESS,
+    executablePath = process.env.CHROME_PATH,
     height = 1280, width = 1696,
   }: {
-    headless?: boolean,
+    headless?: boolean, executablePath?: string,
     height?: number, width?: number,
   } = {}) {
     this.headless = headless;
     this.dimensions = { height, width };
+    this.executablePath = executablePath;
     this.flags = [
       // proxy ? `--proxy-server="${proxy}"` : '',
       // proxy ? '--host-resolver-rules="MAP * 0.0.0.0 , EXCLUDE 127.0.0.1"' : '', // FIXME
       `--user-agent="${randomUserAgent()}"`,
       `--window-size=${width},${height}`,
-      '--disable-gpu',
-      '--enable-logging',
-      '--log-level=0',
-      '--v=99',
-	    '--no-sandbox'
+      '--disable-dev-shm-usage',
     ];
   }
 
   async start() {
-    this.chrome = await puppeteer.launch({ headless: this.headless, args: this.flags });
+    this.chrome = await puppeteer.launch({
+      headless: this.headless,
+      executablePath: this.executablePath,
+      args: this.flags
+    });
     logger.info('Chrome started!');
   }
 
   async ping() {
-    const { register
-     } = await rp({
+    const { register } = await rp({
       uri: `http://${MASTER}:4001/ping`,
       json: true,
       timeout: 1000

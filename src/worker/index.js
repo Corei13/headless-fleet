@@ -58,15 +58,7 @@ app.use(({ requestTime, method, originalUrl }) => {
 
 
 controller.start().then(() =>
-  app.listen(3001, async () => {
+  app.listen(3001, () => {
     logger.info('controller listening on port 3001!');
-    while (true) {
-      try {
-        await controller.ping();
-      } catch (err) {
-        logger.error('Failed to ping master:', err);
-      }
-      await Promise.delay(10000);
-    }
   })
 );
