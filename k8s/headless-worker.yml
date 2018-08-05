@@ -33,7 +33,7 @@ spec:
         resources:
           requests:
             memory: 10G
-            cpu: 1.9
+            cpu: 1600m
       nodeSelector:
         cloud.google.com/gke-nodepool: headless-fleet
       affinity:
