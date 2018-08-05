@@ -15,39 +15,48 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
       - name: worker
-        image: dhananjoy/headless-fleet:v1.0
-        imagePullPolicy: IfNotPresent
+        image: dhananjoy/headless-fleet:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3001
         env:
         - name: HEADLESS
           value: "true"
         - name: CHROME_PATH
-          value: /usr/bin/comium-browser
+          value: /usr/bin/chromium-browser
+        - name: NODE_ENV
+          value: production
         securityContext:
           capabilities:
             add:
               - SYS_ADMIN
-      # nodeSelector:
-      #   cloud.google.com/gke-nodepool: headless-worker
-      # affinity:
-      #   podAntiAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #       - topologyKey: "kubernetes.io/hostname"
-      #         labelSelector:
-      #           matchLabels:
-      #             app: headless-worker
+        resources:
+          requests:
+            memory: 16G
+            cpu: 940m
+          limits:
+            memory: 16G
+            cpu: 2
+      nodeSelector:
+        cloud.google.com/gke-nodepool: headless-worker
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  app: headless-worker
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: headless-worker
+  name: headless-master
   labels:
-    app: headless-worker
+    app: headless-master
 spec:
   type: LoadBalancer
   ports:
-  - name: headless-worker
+  - name: headless-master
     port: 3001
     targetPort: 3001
   selector:

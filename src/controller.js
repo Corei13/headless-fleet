@@ -2,16 +2,16 @@
 
 import type { Browser, Page, NavigationOptions, Viewport } from 'puppeteer';
 
-import rp from 'request-promise';
+import moniker from 'moniker';
 import puppeteer from 'puppeteer';
 import { randomUserAgent } from './user-agents';
-import Logger from '../logger';
+import Logger from './logger';
 
 const logger = new Logger('CONTROLLER');
 
-const MASTER = process.env.MASTER || 'localhost';
 
 export default class Controller {
+  name: string = moniker.choose();
   headless: boolean;
   flags: Array<string> = [];
   chrome: Browser;
@@ -48,17 +48,6 @@ export default class Controller {
     logger.info('Chrome started!');
   }
 
-  async ping() {
-    const { register } = await rp({
-      uri: `http://${MASTER}:4001/ping`,
-      json: true,
-      timeout: 1000
-    });
-    if (register) {
-      logger.info('Registered successfully!');
-    }
-  }
-
   async newTab() {
     const page = await this.chrome.newPage();
     await page.setViewport(this.dimensions);
@@ -92,6 +81,7 @@ export default class Controller {
       await this.closeTab(page);
       this.stats.active -= 1;
       return {
+        worker: this.name,
         success: true,
         elapsed: {
           fetch: loadedAt - requestedAt,
@@ -109,8 +99,8 @@ export default class Controller {
     }
   }
 
-  health() {
-    return this.stats;
+  getStats() {
+    return { worker: this.name, ...this.stats };
   }
 
   async closeTab(page: Page) {

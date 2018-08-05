@@ -5,12 +5,16 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import moment from 'moment';
 
+import rp from 'request-promise';
 import Controller from './controller';
-import Logger from '../logger';
+import Logger from './logger';
 
 const app = express();
 const controller = new Controller();
-const logger = new Logger('MASTER');
+const logger = new Logger('WORKER');
+
+const MASTER = process.env.NODE_ENV === 'production'
+  ? 'headless-master' : 'localhost';
 
 app.use(bodyParser.json({ limit: '200mb' }));
 
@@ -19,27 +23,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/ping', async (req, res, next) => {
-  const { connection: { remoteAddress } } = req;
-  res.status(200).send(controller.ping(remoteAddress.substr(7)));
-  next();
-});
-
-app.get('/workers', async (req, res, next) => {
-  res.status(200).send(controller.getWorkers());
-  next();
-});
-
 app.post('/job/one', async (req, res, next) => {
-  const {
-    body: { url, expression, args = {}, timeout = 10 }
-  } = req;
+  const { body: { url, expression, args = {}, timeout = 10 } } = req;
 
   try {
-    const result = await controller.run(url, expression, args, Number(timeout) * 1000);
-    res.status(200).send(result);
+    const response = await controller.run(url, expression, args, Number(timeout) * 1000);
+    res.status(200).send(response);
     next();
   } catch (err) {
+    logger.error(err);
     next(err);
   }
 });
@@ -49,8 +41,12 @@ app.post('/job/batch', async (req, res, next) => {
 
   try {
     const result = await Promise.all(
-      body.map(({ url, expression, args = {}, timeout = 10 }) =>
-        controller.run(url, expression, args, Number(timeout) * 1000).then(
+      body.map(({ url, expression, args = {}, timeout = 10 }) => rp({
+          uri: `http://${MASTER}:3001/job/one`,
+          json: true,
+          method: 'POST',
+          body: { url, expression, args, timeout }
+        }).then(
           result => ({ success: true, result }),
           err => ({ success: false, error: err.message })
         )
@@ -63,6 +59,16 @@ app.post('/job/batch', async (req, res, next) => {
   }
 });
 
+app.get('/stats', (req, res, next) => {
+  try {
+    res.status(200).send(controller.getStats());
+    next();
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+});
+
 app.use((err, req, res, next) => {
   res.status(500).send({ error: err.message });
   logger.error(req.originalUrl, err.stack);
@@ -71,13 +77,12 @@ app.use((err, req, res, next) => {
 
 app.use(({ requestTime, method, originalUrl }) => {
   const elapsed = moment().diff(requestTime, 'ms') / 1000;
-  if (originalUrl !== '/ping' || elapsed >= 0.01) {
-    logger.info(method, originalUrl, logger.bold(elapsed.toFixed(2)));
-  }
+  logger.info(method, originalUrl, logger.bold(elapsed.toFixed(2)));
 });
 
-app.listen(4001, () => {
-  logger.info('controller listening on port 4001!');
-});
 
-controller.pingForever();
+controller.start().then(() =>
+  app.listen(3001, () => {
+    logger.info('controller listening on port 3001!');
+  })
+);

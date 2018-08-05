@@ -29,4 +29,4 @@ RUN yarn build
 
 ENTRYPOINT ["dumb-init", "--"]
 
-CMD node lib/worker
+CMD node lib
