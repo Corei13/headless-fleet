@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: headless-worker
+  name: headless-fleet
 spec:
   replicas: 5
   selector:
     matchLabels:
-      app: headless-worker
+      app: headless-fleet
   template:
     metadata:
       labels:
-        app: headless-worker
+        app: headless-fleet
     spec:
       dnsPolicy: ClusterFirst
       containers:
@@ -32,20 +32,17 @@ spec:
               - SYS_ADMIN
         resources:
           requests:
-            memory: 16G
-            cpu: 940m
-          limits:
-            memory: 16G
-            cpu: 2
+            memory: 10G
+            cpu: 1.9
       nodeSelector:
-        cloud.google.com/gke-nodepool: headless-worker
+        cloud.google.com/gke-nodepool: headless-fleet
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: "kubernetes.io/hostname"
               labelSelector:
                 matchLabels:
-                  app: headless-worker
+                  app: headless-fleet
 ---
 apiVersion: v1
 kind: Service
@@ -60,4 +57,4 @@ spec:
     port: 3001
     targetPort: 3001
   selector:
-    app: headless-worker
+    app: headless-fleet
