@@ -33,6 +33,7 @@
     "moment": "^2.22.2",
     "moniker": "^0.1.2",
     "puppeteer": "^1.6.0",
+    "request": "^2.87.0",
     "request-promise": "^4.2.2"
   },
   "babel": {
