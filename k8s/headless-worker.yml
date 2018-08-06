@@ -51,7 +51,8 @@ metadata:
   labels:
     app: headless-master
 spec:
-  type: NodePort
+  type: LoadBalancer
+  loadBalancerIP: LOAD_BALANCER_IP
   ports:
   - name: headless-master
     port: 3001
