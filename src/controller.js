@@ -1,7 +1,8 @@
 // @flow
 
-import type { Browser, Page, NavigationOptions, Viewport } from 'puppeteer';
+import type { Browser, Page, Viewport } from 'puppeteer';
 
+import Promise from 'bluebird';
 import moniker from 'moniker';
 import puppeteer from 'puppeteer';
 import { randomUserAgent } from './user-agents';
@@ -54,49 +55,75 @@ export default class Controller {
     return page;
   }
 
-  async navigate(page: Page, url: string, options: NavigationOptions = {}) {
-    const requestedAt = Date.now();
-    await page.goto(url, options);
-    const loadedAt = Date.now();
-
-    return { requestedAt, loadedAt };
-  }
-
-  async evaluate(page: Page, expression: string, args: Object = {}) {
-    const fn = (new Function(`return args => (${expression})({ document, window }, args);`)(): any);
-    const result = await page.evaluate(fn, args);
-    return result;
-  }
-
-  async run(url: string, expression: string, args: Object, timeout: number) {
-    const page = await this.newTab();
+  async runOnPage(expression: string, args: Object, timeout: number) {
     this.stats.total += 1;
     this.stats.active += 1;
-    try {
-      const { requestedAt, loadedAt } = await this.navigate(
-        page, url, { waitUntil: 'domcontentloaded', timeout });
 
-      const result = await this.evaluate(page, expression.toString(), args);
-      const foundAt = Date.now();
-      await this.closeTab(page);
-      this.stats.active -= 1;
-      return {
+    const start = Date.now();
+    const page = await this.newTab();
+
+    const fn = (new Function(`return (page, args) => (${expression})(page, args);`)(): any);
+
+    const res = await Promise.race([
+      fn(page, args).then(result => ({
         worker: this.name,
         success: true,
         elapsed: {
+          total: Date.now() - start
+        },
+        result
+      })),
+      Promise.delay(timeout).then(() => {
+        throw new Error(`Timed out after ${timeout}ms`)
+      })
+    ]).catch(err => {
+      logger.error(err);
+      this.stats.failed += 1;
+      return ({
+        worker: this.name,
+        success: false,
+        elapsed: {
+          total: Date.now() - start
+        },
+        error: err.message
+      });
+    });
+    await this.closeTab(page);
+
+    this.stats.active -= 1;
+
+    return res;
+  }
+
+  async runOnConsole(url: string, expression: string, args: Object, timeout: number) {
+    const fn = async (page, { url, expression, args, timeout }) => {
+      const requestedAt = Date.now();
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+      const loadedAt = Date.now();
+
+      const fn = (new Function(`return args => (${expression})({ document, window }, args);`)(): any);
+      const result = await page.evaluate(fn, args);
+
+      const foundAt = Date.now();
+
+      return {
+        elapsed: {
           fetch: loadedAt - requestedAt,
-          find: foundAt - loadedAt,
-          total: foundAt - requestedAt
+          find: foundAt - loadedAt
         },
         result
       };
-    } catch (err) {
-      logger.error(err);
-      this.stats.failed += 1;
-      this.stats.active -= 1;
-      await this.closeTab(page);
-      throw err;
-    }
+    };
+    const {
+      result: { result, elapsed = {} } = {},
+      ...rest
+    } = await this.runOnPage(fn.toString(), { url, expression: expression.toString(), args, timeout }, timeout);
+
+    return {
+      ...rest,
+      result,
+      elapsed: { ...elapsed, ...rest.elapsed }
+    };
   }
 
   getStats() {

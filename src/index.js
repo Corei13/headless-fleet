@@ -24,10 +24,12 @@ app.use((req, res, next) => {
 });
 
 app.post('/job/one', async (req, res, next) => {
-  const { body: { url, expression, args = {}, timeout = 10 } } = req;
+  const { body: { scope, url, expression, args = {}, timeout = 15 } } = req;
 
   try {
-    const response = await controller.run(url, expression, args, Number(timeout) * 1000);
+    const response = scope === 'page'
+      ? await controller.runOnPage(expression, args, Number(timeout) * 1000)
+      : await controller.runOnConsole(url, expression, args, Number(timeout) * 1000)
     res.status(200).send(response);
     next();
   } catch (err) {
@@ -41,11 +43,11 @@ app.post('/job/batch', async (req, res, next) => {
 
   try {
     const result = await Promise.all(
-      body.map(({ url, expression, args = {}, timeout = 10 }) => rp({
+      body.map(({ scope, url, expression, args = {}, timeout = 15 }) => rp({
           uri: `http://${MASTER}:3001/job/one`,
           json: true,
           method: 'POST',
-          body: { url, expression, args, timeout }
+          body: { scope, url, expression, args, timeout }
         }).then(
           result => ({ success: true, result }),
           err => ({ success: false, error: err.message })
