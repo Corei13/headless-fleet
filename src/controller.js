@@ -64,7 +64,7 @@ export default class Controller {
 
     const fn = (new Function(`return (page, args) => (${expression})(page, args);`)(): any);
 
-    const res = await Promise.race([
+    return Promise.race([
       fn(page, args).then(result => ({
         worker: this.name,
         success: true,
@@ -72,13 +72,19 @@ export default class Controller {
           total: Date.now() - start
         },
         result
-      })),
+      })).then(async result => {
+        this.stats.active -= 1;
+        await this.closeTab(page);
+        return result;
+      }),
       Promise.delay(timeout).then(() => {
         throw new Error(`Timed out after ${timeout}ms`)
       })
-    ]).catch(err => {
+    ]).catch(async err => {
       logger.error(err);
       this.stats.failed += 1;
+      this.stats.active -= 1;
+      await this.closeTab(page);
       return ({
         worker: this.name,
         success: false,
@@ -88,11 +94,6 @@ export default class Controller {
         error: err.message
       });
     });
-    await this.closeTab(page);
-
-    this.stats.active -= 1;
-
-    return res;
   }
 
   async runOnConsole(url: string, expression: string, args: Object, timeout: number) {

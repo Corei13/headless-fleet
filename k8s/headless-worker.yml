@@ -33,7 +33,7 @@ spec:
         resources:
           requests:
             memory: 10G
-            cpu: 1600m
+            cpu: 1500m
       nodeSelector:
         cloud.google.com/gke-nodepool: headless-fleet
       affinity:
@@ -52,7 +52,7 @@ metadata:
     app: headless-master
 spec:
   type: LoadBalancer
-  loadBalancerIP: LOAD_BALANCER_IP
+  # loadBalancerIP: LOAD_BALANCER_IP
   ports:
   - name: headless-master
     port: 3001
