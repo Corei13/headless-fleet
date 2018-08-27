@@ -60,22 +60,21 @@ export default class Controller {
     this.stats.active += 1;
 
     const start = Date.now();
-    const page = await this.newTab();
-
-    const fn = (new Function(`return (page, args) => (${expression})(page, args);`)(): any);
 
     return Promise.race([
-      fn(page, args).then(result => ({
-        worker: this.name,
-        success: true,
-        elapsed: {
-          total: Date.now() - start
-        },
-        result
-      })).then(async result => {
+      this.newTab().then(async page => {
+        const result = await (new Function(`return (page, args) => (${expression})(page, args);`)(): any)(page, args);
+        const res = {
+          worker: this.name,
+          success: true,
+          elapsed: {
+            total: Date.now() - start
+          },
+          result
+        };
         this.stats.active -= 1;
         await this.closeTab(page);
-        return result;
+        return res;
       }),
       Promise.delay(timeout).then(() => {
         throw new Error(`Timed out after ${timeout}ms`)
@@ -84,7 +83,6 @@ export default class Controller {
       logger.error(err);
       this.stats.failed += 1;
       this.stats.active -= 1;
-      await this.closeTab(page);
       return ({
         worker: this.name,
         success: false,
