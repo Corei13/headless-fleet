@@ -62,9 +62,9 @@ export default class Controller {
     const start = Date.now();
 
     return this.newTab()
-      .then(async page =>
+      .then(page =>
         Promise.race([
-          async () => {
+          (async () => {
             try {
               const result = await (new Function(`return (page, args) => (${expression})(page, args);`)(): any)(page, args);
               const res = {
@@ -80,7 +80,7 @@ export default class Controller {
               this.stats.failed += 1;
               throw e;
             }
-          },
+          })(),
           Promise.delay(timeout).then(() => {
             this.stats.timeout += 1;
             throw new Error(`Timed out after ${timeout}ms`);
