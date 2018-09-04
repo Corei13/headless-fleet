@@ -18,7 +18,7 @@ export default class Controller {
   chrome: Browser;
   dimensions: Viewport;
   executablePath: string;
-  stats: { total: number, failed: number, active: number } = { total: 0, failed: 0, active: 0 };
+  stats: { total: number, failed: number, timeout: number, active: number } = { total: 0, failed: 0, timeout: 0, active: 0 };
 
   constructor({
     headless = !!process.env.HEADLESS,
@@ -61,37 +61,47 @@ export default class Controller {
 
     const start = Date.now();
 
-    return Promise.race([
-      this.newTab().then(async page => {
-        const result = await (new Function(`return (page, args) => (${expression})(page, args);`)(): any)(page, args);
-        const res = {
-          worker: this.name,
-          success: true,
-          elapsed: {
-            total: Date.now() - start
+    return this.newTab()
+      .then(async page =>
+        Promise.race([
+          async () => {
+            try {
+              const result = await (new Function(`return (page, args) => (${expression})(page, args);`)(): any)(page, args);
+              const res = {
+                worker: this.name,
+                success: true,
+                elapsed: {
+                  total: Date.now() - start
+                },
+                result
+              };
+              return res;
+            } catch (e) {
+              this.stats.failed += 1;
+              throw e;
+            }
           },
-          result
-        };
-        this.stats.active -= 1;
-        await this.closeTab(page);
-        return res;
-      }),
-      Promise.delay(timeout).then(() => {
-        throw new Error(`Timed out after ${timeout}ms`)
-      })
-    ]).catch(async err => {
-      logger.error(err);
-      this.stats.failed += 1;
-      this.stats.active -= 1;
-      return ({
-        worker: this.name,
-        success: false,
-        elapsed: {
-          total: Date.now() - start
-        },
-        error: err.message
-      });
-    });
+          Promise.delay(timeout).then(() => {
+            this.stats.timeout += 1;
+            throw new Error(`Timed out after ${timeout}ms`);
+          })
+        ])
+        .catch(async err => {
+          this.stats.active -= 1;
+          return ({
+            worker: this.name,
+            success: false,
+            elapsed: {
+              total: Date.now() - start
+            },
+            error: err.message
+          });
+        }).then(async res => {
+          this.stats.active -= 1;
+          await this.closeTab(page);
+          return res;
+        })
+      );
   }
 
   async runOnConsole(url: string, expression: string, args: Object, timeout: number) {
